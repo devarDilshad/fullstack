@@ -13,9 +13,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// user table with auto increament id
-model User {
-  id    Int    @id @default(autoincrement())
-  name  String
-  email String
+model Product {
+  product_id Int     @id @default(autoincrement())
+  name       String
+  price      Decimal
+
+  orders Order[]
+}
+
+model Client {
+  client_id         Int      @id @default(autoincrement())
+  organization_name String?
+  client_name       String   @unique
+  client_number     String   @unique
+  email             String
+  client_address    String
+  shipping_address  String
+  client_balance    Float    @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  Payments Payment[]
+  Invoices Invoice[]
+}
+
+model Invoice {
+  invoice_id     Int      @id @default(autoincrement())
+  client_id      Int
+  invoice_date   DateTime
+  total_amount   Float
+  paid_amount    Float    @default(0)
+  payment_status String
+
+  Client          Client           @relation(fields: [client_id], references: [client_id])
+  PaymentInvoices PaymentInvoice[]
+  orders          Order[]
+  Return          Return[]
+}
+
+model Payment {
+  payment_id     Int      @id @default(autoincrement())
+  client_id      Int
+  payment_type   String
+  payment_amount Float
+  payment_date   DateTime
+  status         String
+  unallocated    Boolean  @default(true)
+
+  Client          Client           @relation(fields: [client_id], references: [client_id])
+  PaymentInvoices PaymentInvoice[]
+}
+
+model PaymentInvoice {
+  id               Int   @id @default(autoincrement())
+  payment_id       Int
+  invoice_id       Int
+  amount_allocated Float
+
+  Payment Payment @relation(fields: [payment_id], references: [payment_id])
+  Invoice Invoice @relation(fields: [invoice_id], references: [invoice_id])
+
+  @@unique([payment_id, invoice_id])
+}
+
+model Order {
+  order_id     String   @id @default(cuid()) // Primary key with default value
+  invoice_id   Int // Foreign key reference to the Invoice model
+  product_id   Int // Foreign key reference to the Product model
+  order_date   DateTime
+  order_desc   String
+  quantity     Int
+  unit_price   Float
+  total_amount Float
+
+  // Relationships
+  Invoice Invoice  @relation(fields: [invoice_id], references: [invoice_id])
+  product Product  @relation(fields: [product_id], references: [product_id])
+  Return  Return[]
+}
+
+model Return {
+  return_id   String   @id @default(cuid()) // Primary key with default value
+  invoice_id  Int // Foreign key reference to the Invoice model
+  return_date DateTime
+  reason      String
+  order_id    String // Foreign key reference to the Order model
+
+  // Relationships
+  Invoice Invoice @relation(fields: [invoice_id], references: [invoice_id])
+  Order   Order   @relation(fields: [order_id], references: [order_id])
 }
