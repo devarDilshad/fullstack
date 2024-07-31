@@ -29,6 +29,7 @@ app.get("/orders/:invoiceId", async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       where: {
+        // convert to number because a parameter is string and invoice id is a number
         invoice_id: Number(req.params.invoiceId),
       },
     });
@@ -39,17 +40,19 @@ app.get("/orders/:invoiceId", async (req, res) => {
 });
 
 // Cancel Order Endpoint
-app.post("/cancel-order", async (req, res) => {
-  const { orderId } = req.body;
-
+app.post("/cancel-order/:orderId", async (req, res) => {
+  const orderId = req.params.orderId;
+  // orderId is a String and so is order_id
+  // find the order and update status to canceled
   try {
     const order = await prisma.order.update({
-      where: { order_id: Number(orderId) },
+      where: { order_id: orderId },
       data: { order_status: "Canceled" },
     });
 
     // Check if all orders in the invoice are canceled
     const orders = await prisma.order.findMany({
+      // change to Number if any bugs is created in the feature
       where: { invoice_id: order.invoice_id },
     });
 

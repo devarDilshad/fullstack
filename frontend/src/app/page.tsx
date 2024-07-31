@@ -1,6 +1,7 @@
 "use client"
 import CardComponent from "@/components/CardComponent";
 import axios from "axios";
+import { revalidatePath } from "next/cache";
 import React, { useEffect, useState } from "react";
 
 interface User {
@@ -99,6 +100,8 @@ export default function Home() {
   // };
 
   //process invoice payment by posting id to /process-payment/:paymentId
+
+  // get all orders for an invoice
   const getOrders = async (e: any) => {
     e.preventDefault();
     try {
@@ -109,6 +112,21 @@ export default function Home() {
       console.log(error);
     }
   };
+
+  // Cancel an order
+  const cancelOrder = async (id: string) => {
+    try {
+      const response = await axios.post(`${url}/cancel-order/${id}`);
+      // refresh orders
+      // revalidate this path
+      const updateOrders = await axios.get(`${url}/orders/${invoiceId}`);
+      setOrders(updateOrders.data)
+      console.log(response);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
@@ -164,11 +182,13 @@ export default function Home() {
               <th className="border border-gray-300 p-2">Unit Price</th>
               <th className="border border-gray-300 p-2">quantity</th>
               <th className="border border-gray-300 p-2">Total Price</th>
+              <th className="border border-gray-300 p-2">Order Status</th>
+              <th className="border border-gray-300 p-2">{" "}</th>
             </tr>
           </thead>
           <tbody>
             {orders?.map((order: any, index) => (
-              <tr className="bg-blue-100" key={order.id}>
+              <tr className="bg-blue-100" key={index}>
                 <td className="border border-gray-300 p-2"> {index} </td>
                 <td className="border border-gray-300 p-2">{order.order_id}</td>
                 <td className="border border-gray-300 p-2">{order.invoice_id}</td>
@@ -178,6 +198,10 @@ export default function Home() {
                 <td className="border border-gray-300 p-2">{order.unit_price}</td>
                 <td className="border border-gray-300 p-2">{order.quantity}</td>
                 <td className="border border-gray-300 p-2">{(order.unit_price * order.quantity)}</td>
+                <td className="border border-gray-300 p-2">{order.order_status}</td>
+                <td className="border border-gray-300 p-2">
+                  <button onClick={() => cancelOrder(order.order_id)} className="bg-red-500 text-white px-1">Cancel</button>
+                </td>
               </tr>
             ))}
           </tbody>
