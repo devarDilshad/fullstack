@@ -162,6 +162,10 @@ export default function Home() {
           <button type="submit" className="w-full p-2 text-white bg-green-500 rounded hover:bg-green-600">process payment</button>
         </form> */}
 
+
+        {/* i need to create a form for creating a new order */}
+        {/* so that the invoices total amount is auto updated with the orders total amount */}
+        
         {/* Product Return Procces */}
         <form onSubmit={getOrders} className="p-4 bg-blue-100 rounded shadow">
           <label htmlFor="InvoiceID" className="text-sm font-medium text-gray-700">Invoice ID</label>

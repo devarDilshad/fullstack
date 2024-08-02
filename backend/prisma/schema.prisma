@@ -105,3 +105,16 @@ model Return {
   Invoice Invoice @relation(fields: [invoice_id], references: [invoice_id])
   Order   Order   @relation(fields: [order_id], references: [order_id])
 }
+
+// model Return {
+//   return_id   String   @id @default(cuid()) // Unique identifier for the return
+//   order_id    String   // Foreign key reference to the Order model
+//   return_date DateTime // Date when the return was processed
+//   reason      String   // Reason for the return
+//   quantity    Int      // Quantity of items returned
+//   amount      Float    // Amount to be refunded (optional)
+
+//   // Relationships
+//   Order       Order    @relation(fields: [order_id], references: [order_id])
+// }
+

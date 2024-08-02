@@ -24,6 +24,55 @@ app.get("/test", (req, res) => {
   }
 });
 
+// Create Order Endpoint and add total amount to invoice
+app.post("/orders", async (req, res) => {
+  const {
+    invoice_id,
+    product_id,
+    order_desc,
+    quantity,
+    unit_price,
+  } = req.body;
+
+  try {
+    const newOrder = await prisma.order.create({
+      data: {
+        invoice_id,
+        product_id,
+        order_date: new Date(),
+        order_desc,
+        quantity,
+        unit_price,
+        total_amount: quantity * unit_price,
+        order_status: "Pending"
+      },
+    });
+
+    // Recalculate the invoice total amount, excluding canceled orders
+    const totalAmount = await prisma.order.aggregate({
+      _sum: {
+        total_amount: true,
+      },
+      where: {
+        invoice_id: invoice_id,
+        order_status: { not: "Canceled" },
+      },
+    });
+
+    await prisma.invoice.update({
+      where: { invoice_id: invoice_id },
+      data: {
+        total_amount: totalAmount._sum.total_amount || 0,
+      },
+    });
+
+    // return newOrder in case of success
+    res.status(201).json(newOrder);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Fetch Orders by Invoice ID Endpoint
 app.get("/orders/:invoiceId", async (req, res) => {
   try {
@@ -42,17 +91,44 @@ app.get("/orders/:invoiceId", async (req, res) => {
 // Cancel Order Endpoint
 app.post("/cancel-order/:orderId", async (req, res) => {
   const orderId = req.params.orderId;
-  // orderId is a String and so is order_id
-  // find the order and update status to canceled
+
   try {
-    const order = await prisma.order.update({
+    // Fetch the order by orderId to get the invoice_id
+    const order = await prisma.order.findUnique({
+      where: { order_id: orderId },
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Update the order status to 'Canceled'
+    const canceledOrder = await prisma.order.update({
       where: { order_id: orderId },
       data: { order_status: "Canceled" },
     });
 
-    // Check if all orders in the invoice are canceled
+    // Recalculate the total amount for the invoice, excluding canceled orders
+    const totalAmount = await prisma.order.aggregate({
+      _sum: {
+        total_amount: true,
+      },
+      where: {
+        invoice_id: order.invoice_id,
+        order_status: { not: "Canceled" },
+      },
+    });
+
+    // Update the invoice total amount
+    await prisma.invoice.update({
+      where: { invoice_id: order.invoice_id },
+      data: {
+        total_amount: totalAmount._sum.total_amount || 0,
+      },
+    });
+
+    // Check if all orders for the invoice are canceled
     const orders = await prisma.order.findMany({
-      // change to Number if any bugs is created in the feature
       where: { invoice_id: order.invoice_id },
     });
 
@@ -61,14 +137,16 @@ app.post("/cancel-order/:orderId", async (req, res) => {
     );
 
     if (allCanceled) {
-      // Update invoice status and amount if necessary
       await prisma.invoice.update({
         where: { invoice_id: order.invoice_id },
         data: { invoice_status: "Canceled", total_amount: 0 },
       });
     }
 
-    res.json({ message: "Order canceled successfully", order });
+    res.json({
+      message: "Order canceled successfully, Invoice updated",
+      canceledOrder,
+    });
   } catch (error) {
     res.status(500).json({ error: "Error canceling order" });
   }
