@@ -26,25 +26,34 @@ app.get("/test", (req, res) => {
 
 // Create Order Endpoint and add total amount to invoice
 app.post("/orders", async (req, res) => {
-  const {
-    invoice_id,
-    product_id,
-    order_desc,
-    quantity,
-    unit_price,
-  } = req.body;
+  const { invoice_id, product_id, order_desc, quantity, unit_price } = req.body;
 
   try {
+    // Convert values to numbers using Number
+    const parsedInvoiceId = Number(invoice_id);
+    const parsedProductId = Number(product_id);
+    const parsedQuantity = Number(quantity);
+    const parsedUnitPrice = Number(unit_price);
+
+    // Check for NaN to ensure valid numbers
+    if (
+      isNaN(parsedInvoiceId) ||
+      isNaN(parsedProductId) ||
+      isNaN(parsedQuantity) ||
+      isNaN(parsedUnitPrice)
+    ) {
+      return res.status(400).json({ error: "Invalid input data" });
+    }
+
     const newOrder = await prisma.order.create({
       data: {
-        invoice_id,
-        product_id,
-        order_date: new Date(),
+        invoice_id: parsedInvoiceId,
+        product_id: parsedProductId,
         order_desc,
-        quantity,
-        unit_price,
-        total_amount: quantity * unit_price,
-        order_status: "Pending"
+        quantity: parsedQuantity,
+        unit_price: parsedUnitPrice,
+        total_amount: parsedQuantity * parsedUnitPrice,
+        order_date: new Date(), // Set current date and time
       },
     });
 
@@ -54,13 +63,13 @@ app.post("/orders", async (req, res) => {
         total_amount: true,
       },
       where: {
-        invoice_id: invoice_id,
+        invoice_id: parsedInvoiceId,
         order_status: { not: "Canceled" },
       },
     });
 
     await prisma.invoice.update({
-      where: { invoice_id: invoice_id },
+      where: { invoice_id: parsedInvoiceId },
       data: {
         total_amount: totalAmount._sum.total_amount || 0,
       },
@@ -355,6 +364,48 @@ async function allocatePayment(paymentId) {
     });
   }
 }
+
+// Get all products
+app.get("/products", async (req, res) => {
+  try {
+    const products = await prisma.product.findMany();
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// get a specific product with validation and error handling
+app.get("/products/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const product = await prisma.product.findUnique({
+      where: { product_id: id },
+    });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// create a new Product
+app.post("/products", async (req, res) => {
+  try {
+    const { name, price } = req.body;
+    const product = await prisma.product.create({
+      data: {
+        name,
+        price,
+      },
+    });
+    res.status(201).json(product);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 // start server
 const PORT = process.env.PORT || 4000;

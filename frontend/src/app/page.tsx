@@ -25,9 +25,9 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({ name: '', email: '' });
   const [updateUser, setUpdateUser] = useState({ id: '', name: '', email: '' });
-  const [paymentId, setPaymentId] = useState({ id: '' });
   const [invoiceId, setInvoiceId] = useState('');
   const [orders, setOrders] = useState([]);
+  const [paymentId, setPaymentId] = useState({ id: '' });
 
   //fetch users
   // useEffect(() => {
@@ -131,7 +131,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
       <div className="space-y-4 w-full max-w-2xl">
-        <h1 className="text-2xl font-bold text-gray-800 text-center">User Management App</h1>
+        <h1 className="text-2xl font-bold text-gray-800 text-center">Return an Invoice with it is Orders</h1>
 
         {/* create a user form */}
         {/* <form onSubmit={addUser} className="p-4 bg-blue-100 rounded shadow">
@@ -165,7 +165,7 @@ export default function Home() {
 
         {/* i need to create a form for creating a new order */}
         {/* so that the invoices total amount is auto updated with the orders total amount */}
-        
+
         {/* Product Return Procces */}
         <form onSubmit={getOrders} className="p-4 bg-blue-100 rounded shadow">
           <label htmlFor="InvoiceID" className="text-sm font-medium text-gray-700">Invoice ID</label>
@@ -193,7 +193,7 @@ export default function Home() {
           <tbody>
             {orders?.map((order: any, index) => (
               <tr className="bg-blue-100" key={index}>
-                <td className="border border-gray-300 p-2"> {index} </td>
+                <td className="border border-gray-300 p-2"> {index + 1} </td>
                 <td className="border border-gray-300 p-2">{order.order_id}</td>
                 <td className="border border-gray-300 p-2">{order.invoice_id}</td>
                 <td className="border border-gray-300 p-2">{order.product_id}</td>
@@ -204,7 +204,10 @@ export default function Home() {
                 <td className="border border-gray-300 p-2">{(order.unit_price * order.quantity)}</td>
                 <td className="border border-gray-300 p-2">{order.order_status}</td>
                 <td className="border border-gray-300 p-2">
-                  <button onClick={() => cancelOrder(order.order_id)} className="bg-red-500 text-white px-1">Cancel</button>
+                  {order.order_status !== "Canceled" ?
+                    <button onClick={() => cancelOrder(order.order_id)} className="text-white bg-red-500 px-1 rounded py-0.5">
+                      Cancel
+                    </button> : ""}
                 </td>
               </tr>
             ))}
